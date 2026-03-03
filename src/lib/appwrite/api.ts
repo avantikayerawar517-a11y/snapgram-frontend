@@ -178,7 +178,8 @@ export async function createPost(post: INewPost) {
 export function getFilePreview(fileId: string) {
   try {
     if (!fileId) return "";
-    return '${API_URL}/api/storage/preview/${fileId}'; 
+    // Direct link tak, Localhost nahi!
+    return 'https://snapgram-backend-cx31.onrender.com/api/storage/preview/${fileId}'; 
   } catch (error) {
     console.log(error);
   }
