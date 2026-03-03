@@ -1,5 +1,5 @@
 // @ts-nocheck
-const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+const API_URL = "https://snapgram-backend-cx31.onrender.com"; 
 import { IUpdatePost, INewPost, INewUser, IUpdateUser } from "@/types";
 
 // ============================== CREATE USER ACCOUNT (Spring Boot)
