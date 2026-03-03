@@ -178,7 +178,7 @@ export async function createPost(post: INewPost) {
 export function getFilePreview(fileId: string) {
   try {
     if (!fileId) return "";
-    return API_URL + "/api/storage/preview/" + fileId;
+    return '${API_URL}/api/storage/preview/${fileId}'; 
   } catch (error) {
     console.log(error);
   }
