@@ -58,47 +58,21 @@ export async function getAccount() {
   }
 }
 
-// ============================== GET CURRENT USER (Spring Boot)
-// ============================== GET CURRENT USER (Spring Boot)
 export async function getCurrentUser() {
   try {
     const userStr = localStorage.getItem("snapgram_user");
     if (!userStr) return null;
     const sessionUser = JSON.parse(userStr);
 
-    // Backend kadhun fresh user ghe
     const url = API_URL + "/api/users/" + sessionUser.id;
     const response = await fetch(url);
     if (!response.ok) return null;
     const user = await response.json();
 
-    // MAGIC: Saved Posts chya IDs varun purna Post chi mahiti aaanne
-    let fullSavedPosts: any[] = [];
-    if (user.saves && user.saves.length > 0) {
-      const promises = user.saves.map(async (postId: string) => {
-        try {
-          const postRes = await fetch(API_URL + "/api/posts/" + postId);
-          if (postRes.ok) {
-            const p = await postRes.json();
-            return {
-              $id: postId, 
-              post: {
-                $id: p.id.toString(),
-                caption: p.caption || "",
-                // 🛑 Fix: Localhost URL la Render link ne replace kelay
-                imageUrl: p.imageUrl?.replace("http://localhost:8080", API_URL) || "",
-                creator: {
-                  name: p.creator?.name || "User",
-                  imageUrl: p.creator?.imageUrl?.replace("http://localhost:8080", API_URL) || "/assets/icons/profile-placeholder.svg"
-                }
-              }
-            };
-          }
-        } catch (e) { return null; }
-        return null;
-      });
-      const results = await Promise.all(promises);
-      fullSavedPosts = results.filter((res) => res !== null);
+    // 🛑 Profile Photo Fix
+    let profilePic = user.imageUrl;
+    if (profilePic && profilePic.includes("localhost:8080")) {
+      profilePic = profilePic.replace("http://localhost:8080", API_URL);
     }
 
     return {
@@ -106,11 +80,11 @@ export async function getCurrentUser() {
       name: user.name,
       username: user.username,
       email: user.email,
-      imageUrl: user.imageUrl?.replace("http://localhost:8080", API_URL) || "/assets/icons/profile-placeholder.svg",
+      imageUrl: profilePic || "/assets/icons/profile-placeholder.svg",
       bio: user.bio || "",
       followers: user.followers ? Array.from(user.followers) : [],
       following: user.following ? Array.from(user.following) : [],
-      save: fullSavedPosts 
+      save: [] // Simplified for debugging
     };
   } catch (error) {
     console.log(error);
@@ -520,7 +494,6 @@ export async function getUserById(userId: string) {
   } catch (error) { console.log(error); }
 }
 
-// ============================== UPDATE USER (Spring Boot)
 export async function updateUser(user: IUpdateUser) {
   const hasFileToUpdate = user.file.length > 0;
   try {
@@ -530,13 +503,11 @@ export async function updateUser(user: IUpdateUser) {
     };
 
     if (hasFileToUpdate) {
-      // 1. Navin photo upload kar
       const uploadedFile = await uploadFile(user.file[0]);
       if (!uploadedFile) throw new Error("File upload failed");
 
+      // Force Replace in Preview Link
       const fileUrl = getFilePreview(uploadedFile.imageId || uploadedFile.$id);
-      if (!fileUrl) throw new Error("Failed to get file preview");
-
       image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.imageId || uploadedFile.$id };
     }
 
@@ -557,23 +528,25 @@ export async function updateUser(user: IUpdateUser) {
     
     const updatedUser = await response.json();
     
-    // 🛑 IMAGE URL FIX: Response madhle localhost Render link ne replace kar
-    // Jyamule LocalStorage madhe barobar link save hoil
-    if (updatedUser.imageUrl && updatedUser.imageUrl.includes("localhost:8080")) {
-      updatedUser.imageUrl = updatedUser.imageUrl.replace("http://localhost:8080", API_URL);
+    // 🛑 DOUBLE CHECK: Localhost replace logic
+    let finalProfileUrl = updatedUser.imageUrl;
+    if (finalProfileUrl && finalProfileUrl.includes("localhost:8080")) {
+      finalProfileUrl = finalProfileUrl.replace("http://localhost:8080", API_URL);
     }
     
-    // LocalStorage madhe update kela mhanje website refresh kelyavar pan photo disel
-    localStorage.setItem("snapgram_user", JSON.stringify(updatedUser));
+    const userToSave = { ...updatedUser, imageUrl: finalProfileUrl };
+    
+    // LocalStorage update karaylach pahije
+    localStorage.setItem("snapgram_user", JSON.stringify(userToSave));
 
     return {
-       $id: updatedUser.id.toString(),
-       name: updatedUser.name,
-       imageUrl: updatedUser.imageUrl,
-       bio: updatedUser.bio
+       $id: userToSave.id.toString(),
+       name: userToSave.name,
+       imageUrl: userToSave.imageUrl,
+       bio: userToSave.bio
     };
   } catch (error) {
-    console.log("Error updating user:", error);
+    console.log(error);
   }
 }
 
