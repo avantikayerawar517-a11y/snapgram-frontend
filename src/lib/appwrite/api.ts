@@ -517,14 +517,18 @@ export async function getUserById(userId: string) {
 export async function updateUser(user: IUpdateUser) {
   const hasFileToUpdate = user.file.length > 0;
   try {
-    let image = { imageUrl: user.imageUrl, imageId: user.imageId };
+    let image = {
+      imageUrl: user.imageUrl,
+      imageId: user.imageId,
+    };
 
     if (hasFileToUpdate) {
+      // 1. Navin photo upload kar
       const uploadedFile = await uploadFile(user.file[0]);
-      if (!uploadedFile) throw Error("File error");
+      if (!uploadedFile) throw new Error("File upload failed");
 
       const fileUrl = getFilePreview(uploadedFile.imageId || uploadedFile.$id);
-      if (!fileUrl) throw Error("Preview error");
+      if (!fileUrl) throw new Error("Failed to get file preview");
 
       image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.imageId || uploadedFile.$id };
     }
@@ -545,6 +549,14 @@ export async function updateUser(user: IUpdateUser) {
     if (!response.ok) throw new Error("Failed to update user");
     
     const updatedUser = await response.json();
+    
+    // 🛑 IMAGE URL FIX: Response madhle localhost Render link ne replace kar
+    // Jyamule LocalStorage madhe barobar link save hoil
+    if (updatedUser.imageUrl && updatedUser.imageUrl.includes("localhost:8080")) {
+      updatedUser.imageUrl = updatedUser.imageUrl.replace("http://localhost:8080", API_URL);
+    }
+    
+    // LocalStorage madhe update kela mhanje website refresh kelyavar pan photo disel
     localStorage.setItem("snapgram_user", JSON.stringify(updatedUser));
 
     return {
@@ -554,7 +566,7 @@ export async function updateUser(user: IUpdateUser) {
        bio: updatedUser.bio
     };
   } catch (error) {
-    console.log(error);
+    console.log("Error updating user:", error);
   }
 }
 
@@ -562,17 +574,15 @@ export async function updateUser(user: IUpdateUser) {
 export async function getInfinitePosts({ pageParam }: { pageParam?: any }) {
   try {
     if (pageParam) return { documents: [] };
-
     const url = API_URL + "/api/posts/recent";
     const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch infinite posts");
-
     const posts = await response.json();
 
     const formattedPosts = posts.map((post: any) => ({
       $id: post.id ? post.id.toString() : Math.random().toString(),
       caption: post.caption || "",
-      imageUrl: post.imageUrl || "",
+      // 🛑 Fix: Localhost URL Replace
+      imageUrl: post.imageUrl?.replace("http://localhost:8080", API_URL) || "",
       imageId: post.imageId || "",
       location: post.location || "",
       tags: post.tags ? post.tags.split(",") : [],
@@ -580,19 +590,14 @@ export async function getInfinitePosts({ pageParam }: { pageParam?: any }) {
       creator: {
         $id: post.creator?.id?.toString() || "1",
         name: post.creator?.name || "Unknown",
-        imageUrl: post.creator?.imageUrl || "/assets/icons/profile-placeholder.svg",
+        imageUrl: post.creator?.imageUrl?.replace("http://localhost:8080", API_URL) || "/assets/icons/profile-placeholder.svg",
       },
       likes: post.likes ? post.likes.map((likeId: string) => ({ $id: likeId })) : [],
       save: []
     }));
-
     return { documents: formattedPosts };
-  } catch (error) {
-    console.log(error);
-    return { documents: [] };
-  }
+  } catch (error) { return { documents: [] }; }
 }
-
 // ============================== SEARCH USERS (Spring Boot)
 export async function searchUsers(searchTerm: string) {
   try {
