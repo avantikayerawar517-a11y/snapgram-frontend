@@ -1,5 +1,5 @@
 // @ts-nocheck
-const API_URL = "https://snapgram-backend-cx31.onrender.com"; 
+const API_URL =import.meta.env.VITE_BACKEND_URL || "https://snapgram-backend-cx31.onrender.com"; 
 import { IUpdatePost, INewPost, INewUser, IUpdateUser } from "@/types";
 
 // ============================== CREATE USER ACCOUNT (Spring Boot)
@@ -163,8 +163,13 @@ export async function createPost(post: INewPost) {
 export function getFilePreview(fileId: string) {
   try {
     if (!fileId) return "";
-    // Direct link tak, Localhost nahi!
-    return 'https://snapgram-backend-cx31.onrender.com/api/storage/preview/${fileId}'; 
+    
+    // Console madhe Vercel chi link distiye yacha arth API_URL chukla aahe
+    // Ithe aapan direct hardcoded Render link taku shakto jar variable kaam karat nase
+    const previewUrl = `${API_URL}/api/storage/preview/${fileId}`;
+    
+    console.log("Image Preview URL generated:", previewUrl); // He console madhe check karayla madat karel
+    return previewUrl;
   } catch (error) {
     console.log(error);
   }
