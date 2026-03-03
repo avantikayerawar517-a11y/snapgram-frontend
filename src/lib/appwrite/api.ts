@@ -144,12 +144,19 @@ export async function uploadFile(file: File) {
     });
 
     if (!response.ok) throw new Error("File upload failed");
-    return await response.json(); 
+    
+    const data = await response.json();
+    
+    // 🛑 Fix: Jar response madhe imageUrl localhost sobat aali, tar tila replace kar
+    if (data.imageUrl && data.imageUrl.includes("localhost:8080")) {
+      data.imageUrl = data.imageUrl.replace("http://localhost:8080", API_URL);
+    }
+    
+    return data; // { imageId: "...", imageUrl: "..." }
   } catch (error) {
-    console.log(error);
+    console.log("Upload error:", error);
   }
 }
-
 // ============================== CREATE POST (Spring Boot)
 export async function createPost(post: INewPost) {
   try {
