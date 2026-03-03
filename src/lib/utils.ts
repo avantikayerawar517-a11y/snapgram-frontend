@@ -28,7 +28,12 @@ export function formatDateString(dateString: string) {
 // 
 export const multiFormatDateString = (timestamp: string = ""): string => {
   const timestampNum = Math.round(new Date(timestamp).getTime() / 1000);
-  const date: Date = new Date(timestampNum * 1000);
+  
+  // 🛑 MAGIC LINE: 5 taas 30 minit (19800 seconds) add kara
+  // Render UTC detoy, mhanje timestamp maghe aahe, tyala pudhe ढकला
+  const istTimestamp = timestampNum + 19800; 
+
+  const date: Date = new Date(istTimestamp * 1000);
   const now: Date = new Date();
 
   const diff: number = now.getTime() - date.getTime();
@@ -37,22 +42,19 @@ export const multiFormatDateString = (timestamp: string = ""): string => {
   const diffInHours: number = diffInMinutes / 60;
   const diffInDays: number = diffInHours / 24;
 
-  switch (true) {
-    case Math.floor(diffInDays) >= 30:
-      return formatDateString(timestamp);
-    case Math.floor(diffInDays) === 1:
-      return `${Math.floor(diffInDays)} day ago`;
-    case Math.floor(diffInDays) > 1 && diffInDays < 30:
-      return `${Math.floor(diffInDays)} days ago`;
-    case Math.floor(diffInHours) >= 1:
-      return `${Math.floor(diffInHours)} hours ago`;
-    case Math.floor(diffInMinutes) >= 1:
-      return `${Math.floor(diffInMinutes)} minutes ago`;
-    default:
-      return "Just now";
+  // Baki logic (Just ago, Minutes ago etc.) tasach thev
+  if (Math.floor(diffInDays) >= 30) {
+    return formatDateString(timestamp);
+  } else if (Math.floor(diffInDays) >= 1) {
+    return `${Math.floor(diffInDays)} days ago`;
+  } else if (Math.floor(diffInHours) >= 1) {
+    return `${Math.floor(diffInHours)} hours ago`;
+  } else if (Math.floor(diffInMinutes) >= 1) {
+    return `${Math.floor(diffInMinutes)} minutes ago`;
+  } else {
+    return "Just now";
   }
 };
-
 export const checkIsLiked = (likeList: string[], userId: string) => {
   return likeList.includes(userId);
 };
