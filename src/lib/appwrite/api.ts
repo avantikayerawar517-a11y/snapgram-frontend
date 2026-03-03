@@ -59,17 +59,20 @@ export async function getAccount() {
 }
 
 // ============================== GET CURRENT USER (Spring Boot)
+// ============================== GET CURRENT USER (Spring Boot)
 export async function getCurrentUser() {
   try {
     const userStr = localStorage.getItem("snapgram_user");
     if (!userStr) return null;
     const sessionUser = JSON.parse(userStr);
 
+    // Backend kadhun fresh user ghe
     const url = API_URL + "/api/users/" + sessionUser.id;
     const response = await fetch(url);
     if (!response.ok) return null;
     const user = await response.json();
 
+    // MAGIC: Saved Posts chya IDs varun purna Post chi mahiti aaanne
     let fullSavedPosts: any[] = [];
     if (user.saves && user.saves.length > 0) {
       const promises = user.saves.map(async (postId: string) => {
@@ -82,10 +85,11 @@ export async function getCurrentUser() {
               post: {
                 $id: p.id.toString(),
                 caption: p.caption || "",
-                imageUrl: p.imageUrl || "",
+                // 🛑 Fix: Localhost URL la Render link ne replace kelay
+                imageUrl: p.imageUrl?.replace("http://localhost:8080", API_URL) || "",
                 creator: {
                   name: p.creator?.name || "User",
-                  imageUrl: p.creator?.imageUrl || "/assets/icons/profile-placeholder.svg"
+                  imageUrl: p.creator?.imageUrl?.replace("http://localhost:8080", API_URL) || "/assets/icons/profile-placeholder.svg"
                 }
               }
             };
@@ -102,7 +106,7 @@ export async function getCurrentUser() {
       name: user.name,
       username: user.username,
       email: user.email,
-      imageUrl: user.imageUrl || "/assets/icons/profile-placeholder.svg",
+      imageUrl: user.imageUrl?.replace("http://localhost:8080", API_URL) || "/assets/icons/profile-placeholder.svg",
       bio: user.bio || "",
       followers: user.followers ? Array.from(user.followers) : [],
       following: user.following ? Array.from(user.following) : [],
@@ -473,8 +477,6 @@ export async function getUserById(userId: string) {
   try {
     const url = API_URL + "/api/users/" + userId;
     const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to get user");
-    
     const user = await response.json();
 
     const postsUrl = API_URL + "/api/posts/user/" + userId;
@@ -482,14 +484,15 @@ export async function getUserById(userId: string) {
     const postsData = postsResponse.ok ? await postsResponse.json() : [];
 
     const formattedPosts = postsData.map((post: any) => ({
-      $id: post.id ? post.id.toString() : Math.random().toString(),
+      $id: post.id.toString(),
       caption: post.caption || "",
-      imageUrl: post.imageUrl || "",
+      // 🛑 Fix: Localhost to API_URL
+      imageUrl: post.imageUrl?.replace("http://localhost:8080", API_URL) || "",
       imageId: post.imageId || "",
       creator: {
         $id: user.id.toString(),
         name: user.name,
-        imageUrl: user.imageUrl || "/assets/icons/profile-placeholder.svg",
+        imageUrl: user.imageUrl?.replace("http://localhost:8080", API_URL) || "/assets/icons/profile-placeholder.svg",
       },
       likes: post.likes ? post.likes.map((likeId: string) => ({ $id: likeId })) : [],
       save: []
@@ -500,16 +503,14 @@ export async function getUserById(userId: string) {
       name: user.name,
       username: user.username,
       email: user.email,
-      imageUrl: user.imageUrl || "/assets/icons/profile-placeholder.svg",
+      imageUrl: user.imageUrl?.replace("http://localhost:8080", API_URL) || "/assets/icons/profile-placeholder.svg",
       bio: user.bio || "",
       save: user.saves ? user.saves.map((postId: string) => ({ post: { $id: postId } })) : [],
       followers: user.followers ? Array.from(user.followers) : [],
       following: user.following ? Array.from(user.following) : [],
       posts: formattedPosts 
     };
-  } catch (error) {
-    console.log(error);
-  }
+  } catch (error) { console.log(error); }
 }
 
 // ============================== UPDATE USER (Spring Boot)
@@ -634,26 +635,29 @@ export async function followUser(currentUserId: string, targetUserId: string) {
   }
 }
 
-// ============================== GET LIKED POSTS (Spring Boot)
+/// ============================== GET LIKED POSTS (Spring Boot)
 export async function getLikedPosts(userId: string) {
   try {
     const url = API_URL + "/api/posts/liked/" + userId;
     const response = await fetch(url);
+    
     if (!response.ok) throw new Error("Failed to get liked posts");
 
     const posts = await response.json();
 
+    // Appwrite chya format madhe convert kar aani URL fix kar
     const formattedPosts = posts.map((post: any) => ({
       $id: post.id.toString(),
       caption: post.caption || "",
-      imageUrl: post.imageUrl || "",
+      // 🛑 Fix: Localhost URL la Render link ne replace kelay
+      imageUrl: post.imageUrl?.replace("http://localhost:8080", API_URL) || "",
       imageId: post.imageId || "",
       location: post.location || "",
       tags: post.tags ? post.tags.split(",") : [],
       creator: {
         $id: post.creator.id.toString(),
         name: post.creator.name,
-        imageUrl: post.creator.imageUrl || "/assets/icons/profile-placeholder.svg",
+        imageUrl: post.creator.imageUrl?.replace("http://localhost:8080", API_URL) || "/assets/icons/profile-placeholder.svg",
       },
       likes: post.likes ? post.likes.map((likeId: string) => ({ $id: likeId })) : [],
       save: []
