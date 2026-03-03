@@ -400,21 +400,37 @@ export async function getRecentPosts() {
     
     if (!Array.isArray(posts)) return { documents: [] };
 
-    const formattedPosts = posts.map((post: any) => ({
-      $id: post?.id?.toString() || Math.random().toString(),
-      caption: post?.caption || "",
-      imageUrl: post?.imageUrl || "/assets/icons/image-placeholder.svg", 
-      location: post?.location || "",
-      tags: post?.tags ? post.tags.split(",") : [], 
-      $createdAt: post?.createdAt || new Date().toISOString(),
-      creator: {
-        $id: post?.creator?.id?.toString() || "1",
-        name: post?.creator?.name || "Unknown User",
-        imageUrl: post?.creator?.imageUrl || "/assets/icons/profile-placeholder.svg",
-      },
-      likes: post?.likes ? post.likes.map((likeId: string) => ({ $id: likeId })) : [],
-      save: []
-    }));
+    const formattedPosts = posts.map((post: any) => {
+      // 🛑 IMAGE URL FIX: Jar database madhun localhost chi link aali, 
+      // tar tila Render chya API_URL ne replace kar.
+      let finalImageUrl = post?.imageUrl || "/assets/icons/image-placeholder.svg";
+      
+      if (finalImageUrl.includes("localhost:8080")) {
+        finalImageUrl = finalImageUrl.replace("http://localhost:8080", API_URL);
+      }
+
+      // Creator cha profile photo pan check kar
+      let creatorImageUrl = post?.creator?.imageUrl || "/assets/icons/profile-placeholder.svg";
+      if (creatorImageUrl.includes("localhost:8080")) {
+        creatorImageUrl = creatorImageUrl.replace("http://localhost:8080", API_URL);
+      }
+
+      return {
+        $id: post?.id?.toString() || Math.random().toString(),
+        caption: post?.caption || "",
+        imageUrl: finalImageUrl, 
+        location: post?.location || "",
+        tags: post?.tags ? post.tags.split(",") : [], 
+        $createdAt: post?.createdAt || new Date().toISOString(),
+        creator: {
+          $id: post?.creator?.id?.toString() || "1",
+          name: post?.creator?.name || "Unknown User",
+          imageUrl: creatorImageUrl,
+        },
+        likes: post?.likes ? post.likes.map((likeId: string) => ({ $id: likeId })) : [],
+        save: []
+      };
+    });
 
     return { documents: formattedPosts }; 
   } catch (error) {
